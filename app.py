@@ -19,7 +19,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     SAMPLE_TOPIC = args.topic
     SAMPLE_FILE_NAME = "audio_tts.wav"
-    VIDEO_SERVER = "pexel"
+    VIDEO_SERVER = "stable_diffusion"
 
     response = generate_script(SAMPLE_TOPIC)
     print("script: {}".format(response))
