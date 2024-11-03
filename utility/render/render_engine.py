@@ -29,7 +29,7 @@ def get_program_path(program_name):
     program_path = search_program(program_name)
     return program_path
 
-def get_output_media(audio_file_path, timed_captions, background_video_data, video_server):
+def get_output_media(audio_file_path, timed_captions, background_media_data, video_server):
     OUTPUT_FILE_NAME = "rendered_video.mp4"
     magick_path = get_program_path("magick")
     print(magick_path)
@@ -39,16 +39,22 @@ def get_output_media(audio_file_path, timed_captions, background_video_data, vid
         os.environ['IMAGEMAGICK_BINARY'] = '/usr/bin/convert'
     
     visual_clips = []
-    for (t1, t2), video_url in background_video_data:
-        # Download the video file
-        video_filename = tempfile.NamedTemporaryFile(delete=False).name
-        download_file(video_url, video_filename)
+    for (t1, t2), media_url, is_photo in background_media_data:
+        # Download the media file (photo or video)
+        media_filename = tempfile.NamedTemporaryFile(delete=False).name
+        download_file(media_url, media_filename)
         
-        # Create VideoFileClip from the downloaded file
-        video_clip = VideoFileClip(video_filename)
-        video_clip = video_clip.set_start(t1)
-        video_clip = video_clip.set_end(t2)
-        visual_clips.append(video_clip)
+        if is_photo:
+            # Use ImageClip for photos and set duration to (t2 - t1)
+            image_clip = ImageClip(media_filename, duration=(t2 - t1))
+            image_clip = image_clip.set_start(t1)
+            visual_clips.append(image_clip)
+        else:
+            # Use VideoFileClip for videos
+            video_clip = VideoFileClip(media_filename)
+            video_clip = video_clip.set_start(t1)
+            video_clip = video_clip.set_end(t2)
+            visual_clips.append(video_clip)
     
     audio_clips = []
     audio_file_clip = AudioFileClip(audio_file_path)
@@ -71,8 +77,8 @@ def get_output_media(audio_file_path, timed_captions, background_video_data, vid
     video.write_videofile(OUTPUT_FILE_NAME, codec='libx264', audio_codec='aac', fps=25, preset='veryfast')
     
     # Clean up downloaded files
-    for (t1, t2), video_url in background_video_data:
-        video_filename = tempfile.NamedTemporaryFile(delete=False).name
-        os.remove(video_filename)
+    for (t1, t2), media_url, is_photo in background_media_data:
+        media_filename = tempfile.NamedTemporaryFile(delete=False).name
+        os.remove(media_filename)
 
     return OUTPUT_FILE_NAME
